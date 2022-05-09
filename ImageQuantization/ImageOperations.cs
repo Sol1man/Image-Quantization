@@ -92,7 +92,30 @@ namespace ImageQuantization
 
             return Buffer;
         }
-        
+
+        public class Quantizer{
+            public int k;
+            public int DistinctColours;
+            public float MSTSum;
+
+            public Quantizer()
+            {
+                this.k = 1;
+            }
+
+            // returns image for displaying
+            internal RGBPixel[,] getImage()
+            {
+                throw new NotImplementedException();
+            }
+
+            internal void quantize(RGBPixel[,] imageMatrix, int k)
+            {
+                this.k = k;
+                throw new NotImplementedException();
+            }
+        }
+
         /// <summary>
         /// Get the height of the image 
         /// </summary>
