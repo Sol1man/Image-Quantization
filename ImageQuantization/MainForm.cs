@@ -51,12 +51,12 @@ namespace ImageQuantization
             quantizer.quantize(ImageMatrix,k);
 
             // get MSTSum and DistinctColors for displaying in form
-            MSTSum.Text = quantizer.MSTSum.ToString();
-            DistCol.Text = quantizer.DistinctColours.ToString();
+            MSTSumBox.Text = quantizer.MSTSum.ToString();
+            DistColBox.Text = quantizer.DistinctColours.ToString();
 
             // get quantized Image for displaying in form
-            RGBPixel[,] QuantizedImage = quantizer.getImage();
-            ImageOperations.DisplayImage(QuantizedImage, pictureBox2);
+            //RGBPixel[,] QuantizedImage = quantizer.getImage();
+            //ImageOperations.DisplayImage(QuantizedImage, pictureBox2);
         }
 
 

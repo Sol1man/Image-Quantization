@@ -93,26 +93,69 @@ namespace ImageQuantization
             return Buffer;
         }
 
-        public class Quantizer{
+        public class Quantizer {
             public int k;
             public int DistinctColours;
             public float MSTSum;
-
+            private RGBPixel[,] originalImage;
+            private RGBPixel[,] quantizedImage;
+            private HashSet<RGBPixel> DistinctColorsSet;
+            public Dictionary<KeyValuePair<RGBPixel, RGBPixel>, float> distances;
             public Quantizer()
             {
                 this.k = 1;
+                this.DistinctColorsSet = new HashSet<RGBPixel>();
+                this.distances = new Dictionary<KeyValuePair<RGBPixel, RGBPixel>, float>();
+            }
+            public void quantize(RGBPixel[,] imageMatrix, int k)
+            {
+                this.k = k;
+
+                // save original image
+                this.originalImage = imageMatrix;
+
+                findDistinctColors();
+                calculateDistances();
+            }
+            private void findDistinctColors()
+            {
+                // Time: O/theta(N^2) 
+                // Space: O(D^2)
+
+                // create set of unique colors in original image
+                foreach (var p in this.originalImage){
+                    this.DistinctColorsSet.Add(p);
+                }
+                // count number of distinct colors (set size)
+                this.DistinctColours = DistinctColorsSet.Count;
+            }
+            private void calculateDistances()
+            {
+                // Optimize?
+                // Time: O/theta(D^2) 
+                // Space: O(D^2) // sigma(D)
+
+                foreach (var p in this.DistinctColorsSet) {
+                    foreach (var q in this.DistinctColorsSet)
+                    {
+                        if (! (p.Equals(q) || distances.ContainsKey(new KeyValuePair<RGBPixel, RGBPixel>(q,p)))) 
+                            distances.Add(new KeyValuePair<RGBPixel, RGBPixel>(p,q), getDistance(p, q));
+                    } 
+                }
+            }
+
+            private float getDistance(RGBPixel p1, RGBPixel p2)
+            {
+                // Time: O(1)
+
+                float dist = (float)((p1.red + p2.red) + (p1.green + p2.green) + (p1.blue + p2.blue));
+                return (float) Math.Sqrt(dist);
             }
 
             // returns image for displaying
-            internal RGBPixel[,] getImage()
+            public RGBPixel[,] getImage()
             {
-                throw new NotImplementedException();
-            }
-
-            internal void quantize(RGBPixel[,] imageMatrix, int k)
-            {
-                this.k = k;
-                throw new NotImplementedException();
+                return quantizedImage;
             }
         }
 

@@ -46,11 +46,11 @@ namespace ImageQuantization
             this.panel2 = new System.Windows.Forms.Panel();
             this.quantize_button = new System.Windows.Forms.Button();
             this.KClustBox = new System.Windows.Forms.TextBox();
-            this.textBox2 = new System.Windows.Forms.TextBox();
+            this.DistColBox = new System.Windows.Forms.TextBox();
             this.DistCol = new System.Windows.Forms.Label();
             this.KClust = new System.Windows.Forms.Label();
             this.MSTSum = new System.Windows.Forms.Label();
-            this.textBox3 = new System.Windows.Forms.TextBox();
+            this.MSTSumBox = new System.Windows.Forms.TextBox();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudMaskSize)).BeginInit();
@@ -270,14 +270,14 @@ namespace ImageQuantization
             this.KClustBox.TabIndex = 18;
             this.KClustBox.Text = "1";
             // 
-            // textBox2
+            // DistColBox
             // 
-            this.textBox2.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold);
-            this.textBox2.Location = new System.Drawing.Point(519, 549);
-            this.textBox2.Name = "textBox2";
-            this.textBox2.ReadOnly = true;
-            this.textBox2.Size = new System.Drawing.Size(80, 27);
-            this.textBox2.TabIndex = 0;
+            this.DistColBox.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold);
+            this.DistColBox.Location = new System.Drawing.Point(519, 549);
+            this.DistColBox.Name = "DistColBox";
+            this.DistColBox.ReadOnly = true;
+            this.DistColBox.Size = new System.Drawing.Size(80, 27);
+            this.DistColBox.TabIndex = 0;
             // 
             // DistCol
             // 
@@ -309,14 +309,14 @@ namespace ImageQuantization
             this.MSTSum.TabIndex = 22;
             this.MSTSum.Text = "MST Sum";
             // 
-            // textBox3
+            // MSTSumBox
             // 
-            this.textBox3.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold);
-            this.textBox3.Location = new System.Drawing.Point(520, 511);
-            this.textBox3.Name = "textBox3";
-            this.textBox3.ReadOnly = true;
-            this.textBox3.Size = new System.Drawing.Size(80, 27);
-            this.textBox3.TabIndex = 21;
+            this.MSTSumBox.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold);
+            this.MSTSumBox.Location = new System.Drawing.Point(520, 511);
+            this.MSTSumBox.Name = "MSTSumBox";
+            this.MSTSumBox.ReadOnly = true;
+            this.MSTSumBox.Size = new System.Drawing.Size(80, 27);
+            this.MSTSumBox.TabIndex = 21;
             // 
             // MainForm
             // 
@@ -324,10 +324,10 @@ namespace ImageQuantization
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1205, 626);
             this.Controls.Add(this.MSTSum);
-            this.Controls.Add(this.textBox3);
+            this.Controls.Add(this.MSTSumBox);
             this.Controls.Add(this.KClust);
             this.Controls.Add(this.DistCol);
-            this.Controls.Add(this.textBox2);
+            this.Controls.Add(this.DistColBox);
             this.Controls.Add(this.KClustBox);
             this.Controls.Add(this.quantize_button);
             this.Controls.Add(this.panel2);
@@ -379,11 +379,11 @@ namespace ImageQuantization
         private System.Windows.Forms.Panel panel2;
         private System.Windows.Forms.Button quantize_button;
         private System.Windows.Forms.TextBox KClustBox;
-        private System.Windows.Forms.TextBox textBox2;
+        private System.Windows.Forms.TextBox DistColBox;
         private System.Windows.Forms.Label DistCol;
         private System.Windows.Forms.Label KClust;
         private System.Windows.Forms.Label MSTSum;
-        private System.Windows.Forms.TextBox textBox3;
+        private System.Windows.Forms.TextBox MSTSumBox;
     }
 }
 
