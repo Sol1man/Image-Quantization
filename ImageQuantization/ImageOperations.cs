@@ -273,8 +273,8 @@ namespace ImageQuantization
                 // save original image
                 this.originalImage = imageMatrix;
                 findDistinctColors();
-                mst = generatMST();
-                MSTSum = calcMSTsum();
+                this.mst = generatMST();
+                this.MSTSum = calcMSTsum();
             }
             private void findDistinctColors()
             {
@@ -292,15 +292,13 @@ namespace ImageQuantization
             private float getDistance(RGBPixel p1, RGBPixel p2)
             {
                 // Time: O(1)
-                float dist = (float)(Math.Pow(p1.red - p2.red,2) + Math.Pow(p1.green - p2.green,2) + Math.Pow(p1.blue - p2.blue,2));
-                return (float) Math.Sqrt(dist);
+                return (float)Math.Sqrt(Math.Pow(p1.red - p2.red,2) + Math.Pow(p1.green - p2.green,2) + Math.Pow(p1.blue - p2.blue,2));
             }
 
             public vertex[] generatMST()
             {
                 PriorityQueue<vertex> q = new PriorityQueue<vertex>(true);
-                int vertexCount = this.DistinctColours;
-                vertex[] vertices = new vertex[vertexCount];
+                vertex[] vertices = new vertex[this.DistinctColours];
 
                 //=================GRAPH CONSTRUCTION======================\\
                 //initialize each vertex
@@ -318,14 +316,14 @@ namespace ImageQuantization
                     vertices_init_i++;
                 }
                 //==================================================\\
-
-
+                
+                // Time: O(D^2)
                 while( q.Count > 0)
                 {
                     //minimize weight of all the vertex's adjacents
                     vertex minVertex = q.Dequeue();
-                    int u = minVertex.id;
                     minVertex.isgray = true;
+                    int u = minVertex.id;
                     vertices[u].isgray = true;
 
                     foreach (var vert in vertices)
@@ -338,6 +336,7 @@ namespace ImageQuantization
                             q.UpdatePriority(vert, vert.weight);
                         }
                     }
+
                 }
                 return vertices;
             }
