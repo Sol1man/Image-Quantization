@@ -99,7 +99,7 @@ namespace ImageQuantization
         {
             class Node
             {
-                public int Priority { get; set; }
+                public float Priority { get; set; }
                 public T Object { get; set; }
             }
 
@@ -119,7 +119,7 @@ namespace ImageQuantization
             }
 
 
-            public void Enqueue(int priority, T obj)
+            public void Enqueue(float priority, T obj)
             {
                 Node node = new Node() { Priority = priority, Object = obj };
                 queue.Add(node);
@@ -148,7 +148,7 @@ namespace ImageQuantization
                 else
                     throw new Exception("Queue is empty");
             }
-            public void UpdatePriority(T obj, int priority)
+            public void UpdatePriority(T obj, float priority)
             {
                 int i = 0;
                 for (; i <= heapSize; i++)
@@ -250,27 +250,21 @@ namespace ImageQuantization
             private RGBPixel[,] originalImage;
             private RGBPixel[,] quantizedImage;
             private HashSet<RGBPixel> DistinctColorsSet;
-            public Dictionary<KeyValuePair<RGBPixel, RGBPixel>, float> distances;
-            public Dictionary<KeyValuePair<RGBPixel,RGBPixel>, float> MST;
-            public List<HashSet<RGBPixel>> vSets;
-            public int[,] adjMatrix;
-
+            private vertex[] mst;
 
 
             public class vertex {
                 public int id;
                 public int parent = -1;
-                public int weight;
+                public float weight = float.MaxValue;
                 public bool isgray = false;
+                public RGBPixel color;
             }
 
             public Quantizer()
             {
                 this.k = 1;
                 this.DistinctColorsSet = new HashSet<RGBPixel>();
-                this.distances = new Dictionary<KeyValuePair<RGBPixel, RGBPixel>, float>();
-                this.MST = new Dictionary<KeyValuePair<RGBPixel, RGBPixel>, float>();
-                this.vSets = new List<HashSet<RGBPixel>>();
             }
             public void quantize(RGBPixel[,] imageMatrix, int k)
             {
@@ -278,9 +272,9 @@ namespace ImageQuantization
 
                 // save original image
                 this.originalImage = imageMatrix;
-
                 findDistinctColors();
-                calculateDistances();
+                mst = generatMST();
+                MSTSum = calcMSTsum();
             }
             private void findDistinctColors()
             {
@@ -294,20 +288,6 @@ namespace ImageQuantization
                 // count number of distinct colors (set size)
                 this.DistinctColours = DistinctColorsSet.Count;
             }
-            private void calculateDistances()
-            {
-                // Optimize?
-                // Time: O/theta(D^2) 
-                // Space: O(D^2) // sigma(D)
-
-                foreach (var p in this.DistinctColorsSet) {
-                    foreach (var q in this.DistinctColorsSet)
-                    {
-                        if (! (p.Equals(q) || distances.ContainsKey(new KeyValuePair<RGBPixel, RGBPixel>(q,p)))) 
-                            distances.Add(new KeyValuePair<RGBPixel, RGBPixel>(p,q), getDistance(p, q));
-                    } 
-                }
-            }
 
             private float getDistance(RGBPixel p1, RGBPixel p2)
             {
@@ -317,33 +297,87 @@ namespace ImageQuantization
                 return (float) Math.Sqrt(dist);
             }
 
-            public void generatMST()
+            public vertex[] generatMST()
             {
-                int i = 0;
-                distances.OrderBy(Key => Key.Value);
-                HashSet<RGBPixel> currentSet;
-                HashSet<RGBPixel> nextSet;
-                List<RGBPixel> MStree = new List<RGBPixel>();
-
-                foreach (var v in this.DistinctColorsSet)
+                PriorityQueue<vertex> q = new PriorityQueue<vertex>(true);
+                int vertexCount = this.DistinctColours;
+                vertex[] vertices = new vertex[vertexCount];
+                //initialize each vertex
+                vertices[0] = new vertex();
+                vertices[0].id = 0;
+                vertices[0].weight = 0;
+                q.Enqueue(vertices[0].weight, vertices[0]);
+                int vertices_init_i = 0;
+                //copy pixels from set to class vertices
+                foreach(var dc in DistinctColorsSet)
                 {
-                    vSets.Add(new HashSet<RGBPixel>());
-                    vSets[i].Add(v);
-                    i++;
+                    vertices[vertices_init_i] = new vertex();
+                    vertices[vertices_init_i].color = dc;
+                    vertices[vertices_init_i].id = vertices_init_i;
+                    q.Enqueue(vertices[vertices_init_i].weight, vertices[vertices_init_i]);
+                    vertices_init_i++;
                 }
-                foreach (var p in this.distances)
+
+                while( q.Count > 0)
                 {
-                    currentSet = vSets.Find(c => c.Contains(p.Key.Key));
-                    nextSet = vSets.Find(c => c.Contains(p.Key.Value));
-                    if (!currentSet.Equals(nextSet))
-                    { 
-                        currentSet.UnionWith(nextSet);
-                        MStree.Add(p.Key.Key);
-                        MStree.Add(p.Key.Value);
+                    //minimize weight of all the vertex's adjacents
+                    vertex minVertex = q.Dequeue();
+                    int u = minVertex.id;
+                    minVertex.isgray = true;
+                    vertices[u].isgray = true;
+
+                    foreach (var vert in vertices)
+                    {
+                        float currentDistance = getDistance(minVertex.color, vert.color);
+                        if ((currentDistance < vert.weight) && !(vert.isgray))
+                        {
+                            vert.parent = minVertex.id;
+                            vert.weight = currentDistance;
+                            q.UpdatePriority(vert, vert.weight);
+                        }
                     }
-
                 }
+                return vertices;
             }
+
+            public float calcMSTsum()
+            {
+                float res = 0;
+                for( int i = 0; i < mst.Length; i++)
+                {
+                    res += mst[i].weight;
+                }
+                return res;
+            }
+
+
+            //public void generatMST()
+            //{
+            //    int i = 0;
+            //    distances.OrderBy(Key => Key.Value);
+            //    HashSet<RGBPixel> currentSet;
+            //    HashSet<RGBPixel> nextSet;
+            //    List<RGBPixel> MStree = new List<RGBPixel>();
+
+            //    foreach (var v in this.DistinctColorsSet)
+            //    {
+            //        vSets.Add(new HashSet<RGBPixel>());
+            //        vSets[i].Add(v);
+            //        i++;
+            //    }
+            //    foreach (var p in this.distances)
+            //    {
+            //        currentSet = vSets.Find(c => c.Contains(p.Key.Key));
+            //        nextSet = vSets.Find(c => c.Contains(p.Key.Value));
+            //        if (!currentSet.Equals(nextSet))
+            //        {
+            //            currentSet.UnionWith(nextSet);
+            //            MStree.Add(p.Key.Key);
+            //            MStree.Add(p.Key.Value);
+            //        }
+
+            //    }
+            //}
 
             // returns image for displaying
             public RGBPixel[,] getImage()
