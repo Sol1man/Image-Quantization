@@ -61,11 +61,13 @@ namespace ImageQuantization
             MSTSumBox.Text = quantizer.MSTSum.ToString();
             DistColBox.Text = quantizer.DistinctColours.ToString();
             timeBox.Text = sw.Elapsed.ToString("mm\\:ss\\.ff");
+
+            Distinct.Text = quantizer.SWcolours.Elapsed.ToString("mm\\:ss\\.ff");
+
             // get quantized Image for displaying in form
             //RGBPixel[,] QuantizedImage = quantizer.getImage();
             //ImageOperations.DisplayImage(QuantizedImage, pictureBox2);
         }
-
 
     }
 }

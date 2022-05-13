@@ -5,6 +5,8 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Drawing.Imaging;
 using System.Linq;
+using System.Diagnostics;
+
 ///Algorithms Project
 ///Intelligent Scissors
 ///
@@ -250,21 +252,23 @@ namespace ImageQuantization
             public float MSTSum;
             private RGBPixel[,] originalImage;
             private RGBPixel[,] quantizedImage;
-            private HashSet<RGBPixel> DistinctColorsSet;
+            private HashSet<int> DistinctColorsSet;
             private vertex[] mst;
+            public Stopwatch SWcolours;
 
             public class vertex {
                 public int id;
                 public int parent = -1;
                 public float weight = float.MaxValue;
                 public bool isgray = false;
-                public RGBPixel color;
+                public int color;
             }
 
             public Quantizer()
             {
                 this.k = 1;
-                this.DistinctColorsSet = new HashSet<RGBPixel>();
+                this.DistinctColorsSet = new HashSet<int>();
+                this.SWcolours = new Stopwatch();
             }
             public void quantize(RGBPixel[,] imageMatrix, int k)
             {
@@ -272,17 +276,36 @@ namespace ImageQuantization
 
                 // save original image
                 this.originalImage = imageMatrix;
+
+                this.SWcolours.Start();
                 findDistinctColors();
+                this.SWcolours.Stop();
+
                 this.mst = generatMST();
                 this.MSTSum = calcMSTsum();
             }
+            public int hashRGB(RGBPixel pi)
+            {
+                return (pi.red << 16) + (pi.green << 8) + (pi.blue);
+            }
+
+            public RGBPixel unHashRGB (int pi)
+            {
+                RGBPixel RGBpi;
+                RGBpi.red = Convert.ToByte((pi & 0xff0000) >> 16);
+                RGBpi.green = Convert.ToByte((pi & 0xff00) >> 8);
+                RGBpi.blue = Convert.ToByte((pi & 0xff));
+                return RGBpi;
+            }
+
             private void findDistinctColors()
             {
                 // Time: O/theta(N^2) 
                 // Space: O(D^2)
                 // create set of unique colors in original image
                 foreach (var p in this.originalImage){
-                    this.DistinctColorsSet.Add(p);
+                    this.DistinctColorsSet.Add(hashRGB(p));
+                    
                 }
                 // count number of distinct colors (set size)
                 this.DistinctColours = DistinctColorsSet.Count;
@@ -356,7 +379,7 @@ namespace ImageQuantization
                     {
                         if (!vert.isgray)
                         {
-                            float currentDistance = getDistance(minVertex.color, vert.color);
+                            float currentDistance = getDistance(unHashRGB(minVertex.color), unHashRGB(vert.color));
                             if (currentDistance < vert.weight)
                             {
                                 vert.parent = minVertex.id;
