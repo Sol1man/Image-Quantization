@@ -51,6 +51,8 @@ namespace ImageQuantization
             this.KClust = new System.Windows.Forms.Label();
             this.MSTSum = new System.Windows.Forms.Label();
             this.MSTSumBox = new System.Windows.Forms.TextBox();
+            this.timeBox = new System.Windows.Forms.TextBox();
+            this.timeLabel = new System.Windows.Forms.Label();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox1)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox2)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudMaskSize)).BeginInit();
@@ -264,7 +266,7 @@ namespace ImageQuantization
             // KClustBox
             // 
             this.KClustBox.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold);
-            this.KClustBox.Location = new System.Drawing.Point(520, 585);
+            this.KClustBox.Location = new System.Drawing.Point(523, 591);
             this.KClustBox.Name = "KClustBox";
             this.KClustBox.Size = new System.Drawing.Size(79, 27);
             this.KClustBox.TabIndex = 18;
@@ -273,7 +275,7 @@ namespace ImageQuantization
             // DistColBox
             // 
             this.DistColBox.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold);
-            this.DistColBox.Location = new System.Drawing.Point(519, 549);
+            this.DistColBox.Location = new System.Drawing.Point(522, 555);
             this.DistColBox.Name = "DistColBox";
             this.DistColBox.ReadOnly = true;
             this.DistColBox.Size = new System.Drawing.Size(80, 27);
@@ -283,7 +285,7 @@ namespace ImageQuantization
             // 
             this.DistCol.AutoSize = true;
             this.DistCol.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold);
-            this.DistCol.Location = new System.Drawing.Point(367, 552);
+            this.DistCol.Location = new System.Drawing.Point(370, 558);
             this.DistCol.Name = "DistCol";
             this.DistCol.Size = new System.Drawing.Size(146, 21);
             this.DistCol.TabIndex = 19;
@@ -293,7 +295,7 @@ namespace ImageQuantization
             // 
             this.KClust.AutoSize = true;
             this.KClust.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold);
-            this.KClust.Location = new System.Drawing.Point(480, 588);
+            this.KClust.Location = new System.Drawing.Point(483, 594);
             this.KClust.Name = "KClust";
             this.KClust.Size = new System.Drawing.Size(22, 21);
             this.KClust.TabIndex = 20;
@@ -303,7 +305,7 @@ namespace ImageQuantization
             // 
             this.MSTSum.AutoSize = true;
             this.MSTSum.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold);
-            this.MSTSum.Location = new System.Drawing.Point(424, 514);
+            this.MSTSum.Location = new System.Drawing.Point(427, 520);
             this.MSTSum.Name = "MSTSum";
             this.MSTSum.Size = new System.Drawing.Size(89, 21);
             this.MSTSum.TabIndex = 22;
@@ -312,17 +314,37 @@ namespace ImageQuantization
             // MSTSumBox
             // 
             this.MSTSumBox.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold);
-            this.MSTSumBox.Location = new System.Drawing.Point(520, 511);
+            this.MSTSumBox.Location = new System.Drawing.Point(523, 517);
             this.MSTSumBox.Name = "MSTSumBox";
             this.MSTSumBox.ReadOnly = true;
             this.MSTSumBox.Size = new System.Drawing.Size(80, 27);
             this.MSTSumBox.TabIndex = 21;
+            // 
+            // timeBox
+            // 
+            this.timeBox.Location = new System.Drawing.Point(522, 484);
+            this.timeBox.Name = "timeBox";
+            this.timeBox.ReadOnly = true;
+            this.timeBox.Size = new System.Drawing.Size(81, 22);
+            this.timeBox.TabIndex = 23;
+            // 
+            // timeLabel
+            // 
+            this.timeLabel.AutoSize = true;
+            this.timeLabel.Font = new System.Drawing.Font("Tahoma", 9.75F, System.Drawing.FontStyle.Bold);
+            this.timeLabel.Location = new System.Drawing.Point(464, 486);
+            this.timeLabel.Name = "timeLabel";
+            this.timeLabel.Size = new System.Drawing.Size(51, 21);
+            this.timeLabel.TabIndex = 24;
+            this.timeLabel.Text = "Time";
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(8F, 16F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1205, 626);
+            this.Controls.Add(this.timeLabel);
+            this.Controls.Add(this.timeBox);
             this.Controls.Add(this.MSTSum);
             this.Controls.Add(this.MSTSumBox);
             this.Controls.Add(this.KClust);
@@ -384,6 +406,8 @@ namespace ImageQuantization
         private System.Windows.Forms.Label KClust;
         private System.Windows.Forms.Label MSTSum;
         private System.Windows.Forms.TextBox MSTSumBox;
+        private System.Windows.Forms.TextBox timeBox;
+        private System.Windows.Forms.Label timeLabel;
     }
 }
 

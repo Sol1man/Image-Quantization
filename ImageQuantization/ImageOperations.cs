@@ -9,6 +9,7 @@ using System.Linq;
 ///Intelligent Scissors
 ///
 
+
 namespace ImageQuantization
 {
     /// <summary>
@@ -252,7 +253,6 @@ namespace ImageQuantization
             private HashSet<RGBPixel> DistinctColorsSet;
             private vertex[] mst;
 
-
             public class vertex {
                 public int id;
                 public int parent = -1;
@@ -280,7 +280,6 @@ namespace ImageQuantization
             {
                 // Time: O/theta(N^2) 
                 // Space: O(D^2)
-
                 // create set of unique colors in original image
                 foreach (var p in this.originalImage){
                     this.DistinctColorsSet.Add(p);
@@ -288,16 +287,29 @@ namespace ImageQuantization
                 // count number of distinct colors (set size)
                 this.DistinctColours = DistinctColorsSet.Count;
             }
-
+            
+            // Time: O(log(pow))
+            private int fastPow(int x, uint pow)
+            {
+                int ret = 1;
+                while (pow != 0)
+                {
+                    if ((pow & 1) == 1)
+                        ret *= x;
+                    x *= x;
+                    pow >>= 1;
+                }
+                return ret;
+            }
             private float getDistance(RGBPixel p1, RGBPixel p2)
             {
-                // Time: O(1)
-                return (float)Math.Sqrt(Math.Pow(p1.red - p2.red,2) + Math.Pow(p1.green - p2.green,2) + Math.Pow(p1.blue - p2.blue,2));
+                // Time: O(??)
+                return (float)Math.Sqrt(fastPow(p1.red - p2.red, 2) + fastPow(p1.green - p2.green, 2) + fastPow(p1.blue - p2.blue,2));
             }
 
             public vertex[] generatMST()
             {
-                PriorityQueue<vertex> q = new PriorityQueue<vertex>(true);
+                //PriorityQueue<vertex> q = new PriorityQueue<vertex>(true);
                 vertex[] vertices = new vertex[this.DistinctColours];
 
                 //=================GRAPH CONSTRUCTION======================\\
@@ -312,31 +324,47 @@ namespace ImageQuantization
                     
                     if (vertices_init_i==0)
                         vertices[vertices_init_i].weight = 0;
-                    q.Enqueue(vertices[vertices_init_i].weight, vertices[vertices_init_i]);
+                    //q.Enqueue(vertices[vertices_init_i].weight, vertices[vertices_init_i]);
                     vertices_init_i++;
                 }
                 //==================================================\\
-                
-                // Time: O(D^2)
-                while( q.Count > 0)
+
+                int q = DistinctColours;
+                // Total Time: O (V^3)
+                // Time: O(V)
+                while(q-- > 0)
                 {
                     //minimize weight of all the vertex's adjacents
-                    vertex minVertex = q.Dequeue();
-                    minVertex.isgray = true;
-                    int u = minVertex.id;
-                    vertices[u].isgray = true;
-
-                    foreach (var vert in vertices)
+                    //vertex minVertex = q.Dequeue();
+                    
+                    // Time: O(V)
+                    int bestNode = 0;
+                    float bestDist = float.MaxValue;
+                    foreach(var v in vertices)
                     {
-                        float currentDistance = getDistance(minVertex.color, vert.color);
-                        if ((currentDistance < vert.weight) && !(vert.isgray))
+                        if (!v.isgray && v.weight < bestDist)
                         {
-                            vert.parent = minVertex.id;
-                            vert.weight = currentDistance;
-                            q.UpdatePriority(vert, vert.weight);
+                            bestNode = v.id;
+                            bestDist = v.weight;
                         }
                     }
-
+                    vertex minVertex = vertices[bestNode];
+                    vertices[minVertex.id].isgray = true;
+                    minVertex.isgray = true;
+                    // Time: O(V)
+                    foreach (var vert in vertices)
+                    {
+                        if (!vert.isgray)
+                        {
+                            float currentDistance = getDistance(minVertex.color, vert.color);
+                            if (currentDistance < vert.weight)
+                            {
+                                vert.parent = minVertex.id;
+                                vert.weight = currentDistance;
+                                //q.UpdatePriority(vert, vert.weight);
+                            } 
+                        }
+                    }
                 }
                 return vertices;
             }
@@ -346,7 +374,7 @@ namespace ImageQuantization
                 float res = 0;
                 for( int i = 0; i < mst.Length; i++)
                 {
-                    res += mst[i].weight;
+                    res += mst[i].weight; 
                 }
                 return res;
             }
