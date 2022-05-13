@@ -254,21 +254,21 @@ namespace ImageQuantization
             private RGBPixel[,] quantizedImage;
             private HashSet<int> DistinctColorsSet;
             private vertex[] mst;
-            public Stopwatch SWcolours;
+            public Stopwatch operationsSW;
 
-            public class vertex {
+            private class vertex {
                 public int id;
                 public int parent = -1;
                 public float weight = float.MaxValue;
-                public bool isgray = false;
-                public int color;
+                public bool isGray = false;
+                public int color; // Hashed color value
             }
 
             public Quantizer()
             {
                 this.k = 1;
                 this.DistinctColorsSet = new HashSet<int>();
-                this.SWcolours = new Stopwatch();
+                this.operationsSW = new Stopwatch();
             }
             public void quantize(RGBPixel[,] imageMatrix, int k)
             {
@@ -277,19 +277,18 @@ namespace ImageQuantization
                 // save original image
                 this.originalImage = imageMatrix;
 
-                this.SWcolours.Start();
+                this.operationsSW.Start();
                 findDistinctColors();
-                this.SWcolours.Stop();
+                this.operationsSW.Stop();
 
                 this.mst = generatMST();
                 this.MSTSum = calcMSTsum();
             }
-            public int hashRGB(RGBPixel pi)
+            private int hashRGB(RGBPixel pi)
             {
                 return (pi.red << 16) + (pi.green << 8) + (pi.blue);
             }
-
-            public RGBPixel unHashRGB (int pi)
+            private RGBPixel unHashRGB (int pi)
             {
                 RGBPixel RGBpi;
                 RGBpi.red = Convert.ToByte((pi & 0xff0000) >> 16);
@@ -297,7 +296,6 @@ namespace ImageQuantization
                 RGBpi.blue = Convert.ToByte((pi & 0xff));
                 return RGBpi;
             }
-
             private void findDistinctColors()
             {
                 // Time: O/theta(N^2) 
@@ -305,13 +303,12 @@ namespace ImageQuantization
                 // create set of unique colors in original image
                 foreach (var p in this.originalImage){
                     this.DistinctColorsSet.Add(hashRGB(p));
-                    
                 }
                 // count number of distinct colors (set size)
                 this.DistinctColours = DistinctColorsSet.Count;
             }
             
-            // Time: O(log(pow))
+            // Time: O(log(pow)) === O(log(2))
             private int fastPow(int x, uint pow)
             {
                 int ret = 1;
@@ -326,11 +323,11 @@ namespace ImageQuantization
             }
             private float getDistance(RGBPixel p1, RGBPixel p2)
             {
-                // Time: O(??)
+                // Time: O(log(2))...?
                 return (float)Math.Sqrt(fastPow(p1.red - p2.red, 2) + fastPow(p1.green - p2.green, 2) + fastPow(p1.blue - p2.blue,2));
             }
 
-            public vertex[] generatMST()
+            private vertex[] generatMST()
             {
                 //PriorityQueue<vertex> q = new PriorityQueue<vertex>(true);
                 vertex[] vertices = new vertex[this.DistinctColours];
@@ -353,31 +350,32 @@ namespace ImageQuantization
                 //==================================================\\
 
                 int q = DistinctColours;
-                // Total Time: O (V^3)
+                // Total Time: O (V^2)
                 // Time: O(V)
-                while(q-- > 0)
+                while (q-- > 0)
+                //while(q.Count>0)
                 {
                     //minimize weight of all the vertex's adjacents
                     //vertex minVertex = q.Dequeue();
-                    
+
                     // Time: O(V)
                     int bestNode = 0;
                     float bestDist = float.MaxValue;
-                    foreach(var v in vertices)
+                    foreach (var v in vertices)
                     {
-                        if (!v.isgray && v.weight < bestDist)
+                        if (!v.isGray && v.weight < bestDist)
                         {
                             bestNode = v.id;
                             bestDist = v.weight;
                         }
                     }
                     vertex minVertex = vertices[bestNode];
-                    vertices[minVertex.id].isgray = true;
-                    minVertex.isgray = true;
+                    vertices[minVertex.id].isGray = true;
+                    minVertex.isGray = true;
                     // Time: O(V)
                     foreach (var vert in vertices)
                     {
-                        if (!vert.isgray)
+                        if (!vert.isGray)
                         {
                             float currentDistance = getDistance(unHashRGB(minVertex.color), unHashRGB(vert.color));
                             if (currentDistance < vert.weight)
@@ -392,7 +390,7 @@ namespace ImageQuantization
                 return vertices;
             }
 
-            public float calcMSTsum()
+            private float calcMSTsum()
             {
                 float res = 0;
                 for( int i = 0; i < mst.Length; i++)

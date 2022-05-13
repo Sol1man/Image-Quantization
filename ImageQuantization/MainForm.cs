@@ -33,6 +33,7 @@ namespace ImageQuantization
             DistColBox.Text = "";
             MSTSumBox.Text = "";
             timeBox.Text = "";
+            operationsSWBox.Text = "";
         }
 
         private void btnGaussSmooth_Click(object sender, EventArgs e)
@@ -61,8 +62,7 @@ namespace ImageQuantization
             MSTSumBox.Text = quantizer.MSTSum.ToString();
             DistColBox.Text = quantizer.DistinctColours.ToString();
             timeBox.Text = sw.Elapsed.ToString("mm\\:ss\\.ff");
-
-            Distinct.Text = quantizer.SWcolours.Elapsed.ToString("mm\\:ss\\.ff");
+            operationsSWBox.Text = quantizer.operationsSW.Elapsed.ToString("mm\\:ss\\.ff");
 
             // get quantized Image for displaying in form
             //RGBPixel[,] QuantizedImage = quantizer.getImage();
