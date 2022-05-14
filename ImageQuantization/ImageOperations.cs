@@ -102,7 +102,7 @@ namespace ImageQuantization
         {
             class Node
             {
-                public float Priority { get; set; }
+                public double Priority { get; set; }
                 public T Object { get; set; }
             }
 
@@ -122,7 +122,7 @@ namespace ImageQuantization
             }
 
 
-            public void Enqueue(float priority, T obj)
+            public void Enqueue(double priority, T obj)
             {
                 Node node = new Node() { Priority = priority, Object = obj };
                 queue.Add(node);
@@ -151,7 +151,7 @@ namespace ImageQuantization
                 else
                     throw new Exception("Queue is empty");
             }
-            public void UpdatePriority(T obj, float priority)
+            public void UpdatePriority(T obj, double priority)
             {
                 int i = 0;
                 for (; i <= heapSize; i++)
@@ -249,7 +249,7 @@ namespace ImageQuantization
         public class Quantizer {
             public int k;
             public int DistinctColours;
-            public float MSTSum;
+            public double MSTSum;
             private RGBPixel[,] originalImage;
             private RGBPixel[,] quantizedImage;
             private HashSet<int> DistinctColorsSet;
@@ -259,7 +259,7 @@ namespace ImageQuantization
             private class vertex {
                 public int id;
                 public int parent = -1;
-                public float weight = float.MaxValue;
+                public double weight = double.MaxValue;
                 public bool isGray = false;
                 public int color; // Hashed color value
             }
@@ -321,10 +321,10 @@ namespace ImageQuantization
                 }
                 return ret;
             }
-            private float getDistance(RGBPixel p1, RGBPixel p2)
+            private double getDistance(RGBPixel p1, RGBPixel p2)
             {
                 // Time: O(log(2))...?
-                return (float)Math.Sqrt(fastPow(p1.red - p2.red, 2) + fastPow(p1.green - p2.green, 2) + fastPow(p1.blue - p2.blue,2));
+                return Math.Sqrt(fastPow(p1.red - p2.red, 2) + fastPow(p1.green - p2.green, 2) + fastPow(p1.blue - p2.blue,2));
             }
 
             private vertex[] generatMST()
@@ -360,7 +360,7 @@ namespace ImageQuantization
 
                     // Time: O(V)
                     int bestNode = 0;
-                    float bestDist = float.MaxValue;
+                    double bestDist = double.MaxValue;
                     foreach (var v in vertices)
                     {
                         if (!v.isGray && v.weight < bestDist)
@@ -377,7 +377,7 @@ namespace ImageQuantization
                     {
                         if (!vert.isGray)
                         {
-                            float currentDistance = getDistance(unHashRGB(minVertex.color), unHashRGB(vert.color));
+                            double currentDistance = getDistance(unHashRGB(minVertex.color), unHashRGB(vert.color));
                             if (currentDistance < vert.weight)
                             {
                                 vert.parent = minVertex.id;
@@ -390,9 +390,9 @@ namespace ImageQuantization
                 return vertices;
             }
 
-            private float calcMSTsum()
+            private double calcMSTsum()
             {
-                float res = 0;
+                double res = 0;
                 for( int i = 0; i < mst.Length; i++)
                 {
                     res += mst[i].weight; 
