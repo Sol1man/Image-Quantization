@@ -11,7 +11,6 @@ using System.Diagnostics;
 ///Intelligent Scissors
 ///
 
-
 namespace ImageQuantization
 {
     /// <summary>
@@ -25,13 +24,289 @@ namespace ImageQuantization
     {
         public double red, green, blue;
     }
-    
-  
+
     /// <summary>
     /// Library of static functions that deal with images
     /// </summary>
     public class ImageOperations
     {
+        public class Quantizer
+        {
+            private int k;
+            private double MSTSum;
+            private RGBPixel[,] originalImage;
+            private RGBPixel[,] quantizedImage;
+            private HashSet<int> DistinctColorsSet;
+            private vertex[] mst;
+            // adjacency list for distinct colors
+            private List<int>[] adj;
+            // maps hashed distinct color to its mean representation
+            private Dictionary<int, int> distColMap;
+            private int clusterCount = 1;
+            public Stopwatch operationsSW;
+
+            private class vertex
+            {
+                public int id;
+                public int parent;
+                public double weight = double.MaxValue;
+                public int color; // Hashed color value
+                public int cluster_id;
+            }
+            public Quantizer()
+            {
+                this.k = 1;
+                this.DistinctColorsSet = new HashSet<int>();
+                this.operationsSW = new Stopwatch();
+                this.distColMap = new Dictionary<int, int>();
+            }
+            public void quantize(RGBPixel[,] imageMatrix, int k)
+            {
+                this.k = k;
+                // save original image
+                this.originalImage = imageMatrix;
+                // time distinct colors aggregation
+                
+                // measure time taken to find distinct colors
+                this.operationsSW.Start();
+                findDistinctColors();
+                this.operationsSW.Stop();
+
+                // adjacency list for distinct colors
+                this.adj = new List<int>[this.DistinctColorsSet.Count];
+                this.mst = GenerateMST();
+                this.MSTSum = CalcMSTSum();
+                ExtractClusters();
+                Get_Adj();
+                BFS();
+                ClustersColor();
+                ReplaceDistColors();
+            }
+            private int hashRGB(RGBPixel pi)
+            {
+                // Time: O(1)
+                return (pi.red << 16) + (pi.green << 8) + (pi.blue);
+            }
+            private RGBPixel unHashRGB(int pi)
+            {
+                // Time: O(1)
+                RGBPixel RGBpi;
+                RGBpi.red = Convert.ToByte((pi & 0xff0000) >> 16);
+                RGBpi.green = Convert.ToByte((pi & 0xff00) >> 8);
+                RGBpi.blue = Convert.ToByte((pi & 0xff));
+                return RGBpi;
+            }
+            private void findDistinctColors()
+            {
+                // Time: O/theta(N^2) 
+                // Space: O(D^2)
+                // create set of unique colors in original image
+                foreach (var p in this.originalImage)
+                {
+                    this.DistinctColorsSet.Add(hashRGB(p));
+                }
+            }
+            private int fastPow(int x, uint pow)
+            {
+                // Time: O(log(pow)) === O(log(2))
+                int ret = 1;
+                while (pow != 0)
+                {
+                    if ((pow & 1) == 1)
+                        ret *= x;
+                    x *= x;
+                    pow >>= 1;
+                }
+                return ret;
+            }
+            private double getDistance(RGBPixel p1, RGBPixel p2)
+            {
+                // Time: O(log(2))...? Math.sqrt -> O(1) according to StackOverflow
+                return Math.Sqrt(fastPow(p1.red - p2.red, 2) + fastPow(p1.green - p2.green, 2) + fastPow(p1.blue - p2.blue, 2));
+            }
+            private vertex[] GenerateMST()
+            {
+                vertex[] vertices = new vertex[this.DistinctColorsSet.Count];
+                bool[] isGray = new bool[this.DistinctColorsSet.Count];
+                //=================GRAPH CONSTRUCTION======================\\
+                // Time: O(D)
+                // copy pixels from set to array of class vertices
+                int vertices_init_i = 0;
+                foreach (var color in DistinctColorsSet)
+                {
+                    vertices[vertices_init_i] = new vertex();
+                    vertices[vertices_init_i].color = color;
+                    vertices[vertices_init_i].id = vertices_init_i;
+
+                    adj[vertices_init_i] = new List<int>();
+                    isGray[vertices_init_i] = false;
+
+                    vertices_init_i++;
+                }
+                vertices[0].weight = 0;
+                //==================================================\\
+
+                //=================MST CONSTRUCTION======================\\
+                // Total Time: O (D^2)
+                // holds index of the node with minimum weight
+                int bestNode = 0;
+                // Time: O(D)
+                for (int D=0;D<this.DistinctColorsSet.Count;D++)
+                {
+                    double bestDist = double.MaxValue;
+                    //vertex minVertex = q.Dequeue();
+                    isGray[bestNode] = true;
+                    //vertices[bestNode].isGray = true;
+                    vertex minVertex = vertices[bestNode];
+
+                    // Time: O(D)
+                    foreach (var vert in vertices)
+                    {
+                        //if (!vert.isGray)
+                        if (!isGray[vert.id])
+                        {
+                            double currentDistance = getDistance(unHashRGB(minVertex.color), unHashRGB(vert.color));
+                            if (currentDistance < vert.weight)
+                            {
+                                vert.parent = minVertex.id;
+                                vert.weight = currentDistance;
+                            }
+                            if (vert.weight < bestDist)
+                            {
+                                bestNode = vert.id;
+                                bestDist = vert.weight;
+                            }
+                        }
+                    }
+                }
+                //==================================================\\
+                return vertices;
+            }
+            private void ExtractClusters()
+            {
+                //=================CLUSTER EXTRACTION======================\\
+                // Time: O(K*D)
+                // extract k clusters using k-1 cuts
+                for (int cuts = 0; cuts != k - 1; cuts++)
+                {
+                    double mx = -1;
+                    int idx = -1;
+                    foreach (var vert in mst)
+                    {
+                        if (vert.parent != -1 && (mx < vert.weight))
+                        {
+                            idx = vert.id;
+                            mx = vert.weight;
+                        }
+                    }
+                    mst[idx].parent = -1;
+                }
+                //==================================================\\
+            }
+            private double CalcMSTSum()
+            {
+                double res = 0;
+                for (int i = 0; i < mst.Length; i++)
+                {
+                    res += mst[i].weight;
+                }
+                return Math.Round(res, 1);
+            }
+            private void Get_Adj()
+            {
+                foreach (var v in mst)
+                {
+                    if (v.parent == -1)
+                        continue;
+
+                    adj[v.id].Add(v.parent);
+                    adj[v.parent].Add(v.id);
+                }
+            }
+            private void BFS()
+            {
+                bool[] visited = new bool[mst.Length];
+                int cluster_id = 0;
+                foreach (var v in mst)
+                {
+                    if (visited[v.id] == true)
+                        continue;
+                    visited[v.id] = true;
+                    Queue<int> nodes = new Queue<int>();
+                    nodes.Enqueue(v.id);
+                    while (nodes.Count != 0)
+                    {
+                        int parent = nodes.Dequeue();
+                        mst[parent].cluster_id = cluster_id;
+                        
+                        foreach (var child in adj[parent])
+                        {
+                            if (!visited[child])
+                            {
+                                visited[child] = true;
+                                nodes.Enqueue(child);
+                            }
+                        }
+                    }
+
+                    cluster_id++;
+                    clusterCount++;
+                }
+            }
+            private void ClustersColor()
+            {
+                int[] counter = new int[clusterCount];
+                double[] cluster_red = new double[clusterCount];
+                double[] cluster_green = new double[clusterCount];
+                double[] cluster_blue = new double[clusterCount];
+                
+                //calculate sum of each cluster RBG
+                //O(d)
+                foreach (var t in mst)
+                {
+                    RGBPixel MyPixel = unHashRGB(t.color);
+                    counter[t.cluster_id]++;
+                    cluster_red[t.cluster_id] += MyPixel.red;
+                    cluster_green[t.cluster_id] += MyPixel.green;
+                    cluster_blue[t.cluster_id] += MyPixel.blue;
+                }
+
+                //calculate clusters mean 
+                //O(d)
+                foreach (var t in mst)
+                {
+                    RGBPixel pixel_mean;
+                    pixel_mean.red = (byte)(cluster_red[t.cluster_id] / counter[t.cluster_id]);
+                    pixel_mean.green = (byte)(cluster_green[t.cluster_id] / counter[t.cluster_id]);
+                    pixel_mean.blue = (byte)(cluster_blue[t.cluster_id] / counter[t.cluster_id]);
+                    distColMap.Add(t.color, hashRGB(pixel_mean));
+                }
+
+            }
+            private void ReplaceDistColors()
+            {
+                quantizedImage = new RGBPixel[originalImage.GetLength(0), originalImage.GetLength(1)];
+                for (int i = 0; i < originalImage.GetLength(0); i++)
+                {
+                    for (int j = 0; j < originalImage.GetLength(1); j++)
+                    {
+                        quantizedImage[i, j] = unHashRGB(distColMap[hashRGB(originalImage[i, j])]);
+                    }
+                }
+            }
+            public RGBPixel[,] getImage()
+            {
+                return quantizedImage;
+            }
+            public int getDistinctColoursCount() { 
+                return this.DistinctColorsSet.Count; 
+            }
+            public double getMSTSum()
+            {
+                return this.MSTSum;
+            }
+        }
+        
         /// <summary>
         /// Open an image and load it into 2D array of colors (size: Height x Width)
         /// </summary>
@@ -96,316 +371,6 @@ namespace ImageQuantization
 
             return Buffer;
         }
-
-        //PRIORY Queue implementation
-        public class PriorityQueue<T>
-        {
-            class Node
-            {
-                public double Priority { get; set; }
-                public T Object { get; set; }
-            }
-
-            //object array
-            List<Node> queue = new List<Node>();
-            int heapSize = -1;
-            bool _isMinPriorityQueue;
-            public int Count { get { return queue.Count; } }
-
-            /// <summary>
-            /// If min queue or max queue
-            /// </summary>
-            /// <param name="isMinPriorityQueue"></param>
-            public PriorityQueue(bool isMinPriorityQueue = false)
-            {
-                _isMinPriorityQueue = isMinPriorityQueue;
-            }
-
-
-            public void Enqueue(double priority, T obj)
-            {
-                Node node = new Node() { Priority = priority, Object = obj };
-                queue.Add(node);
-                heapSize++;
-                //Maintaining heap
-                if (_isMinPriorityQueue)
-                    BuildHeapMin(heapSize);
-                else
-                    BuildHeapMax(heapSize);
-            }
-            public T Dequeue()
-            {
-                if (heapSize > -1)
-                {
-                    var returnVal = queue[0].Object;
-                    queue[0] = queue[heapSize];
-                    queue.RemoveAt(heapSize);
-                    heapSize--;
-                    //Maintaining lowest or highest at root based on min or max queue
-                    if (_isMinPriorityQueue)
-                        MinHeapify(0);
-                    else
-                        MaxHeapify(0);
-                    return returnVal;
-                }
-                else
-                    throw new Exception("Queue is empty");
-            }
-            public void UpdatePriority(T obj, double priority)
-            {
-                int i = 0;
-                for (; i <= heapSize; i++)
-                {
-                    Node node = queue[i];
-                    if (object.ReferenceEquals(node.Object, obj))
-                    {
-                        node.Priority = priority;
-                        if (_isMinPriorityQueue)
-                        {
-                            BuildHeapMin(i);
-                            MinHeapify(i);
-                        }
-                        else
-                        {
-                            BuildHeapMax(i);
-                            MaxHeapify(i);
-                        }
-                    }
-                }
-            }
-            private void BuildHeapMax(int i)
-            {
-                while (i >= 0 && queue[(i - 1) / 2].Priority < queue[i].Priority)
-                {
-                    Swap(i, (i - 1) / 2);
-                    i = (i - 1) / 2;
-                }
-            }
-            /// <summary>
-            /// Maintain min heap
-            /// </summary>
-            /// <param name="i"></param>
-            private void BuildHeapMin(int i)
-            {
-                while (i >= 0 && queue[(i - 1) / 2].Priority > queue[i].Priority)
-                {
-                    Swap(i, (i - 1) / 2);
-                    i = (i - 1) / 2;
-                }
-            }
-            private void MaxHeapify(int i)
-            {
-                int left = ChildL(i);
-                int right = ChildR(i);
-
-                int heighst = i;
-
-                if (left <= heapSize && queue[heighst].Priority < queue[left].Priority)
-                    heighst = left;
-                if (right <= heapSize && queue[heighst].Priority < queue[right].Priority)
-                    heighst = right;
-
-                if (heighst != i)
-                {
-                    Swap(heighst, i);
-                    MaxHeapify(heighst);
-                }
-            }
-            private void MinHeapify(int i)
-            {
-                int left = ChildL(i);
-                int right = ChildR(i);
-
-                int lowest = i;
-
-                if (left <= heapSize && queue[lowest].Priority > queue[left].Priority)
-                    lowest = left;
-                if (right <= heapSize && queue[lowest].Priority > queue[right].Priority)
-                    lowest = right;
-
-                if (lowest != i)
-                {
-                    Swap(lowest, i);
-                    MinHeapify(lowest);
-                }
-            }
-            private void Swap(int i, int j)
-            {
-                var temp = queue[i];
-                queue[i] = queue[j];
-                queue[j] = temp;
-            }
-            private int ChildL(int i)
-            {
-                return i * 2 + 1;
-            }
-            private int ChildR(int i)
-            {
-                return i * 2 + 2;
-            }
-        }
-        //========================End of priorty Queue=========================\\
-        
-        public class Quantizer {
-            public int k;
-            public int DistinctColours;
-            public double MSTSum;
-            private RGBPixel[,] originalImage;
-            private RGBPixel[,] quantizedImage;
-            private HashSet<int> DistinctColorsSet;
-            private vertex[] mst;
-            public Stopwatch operationsSW;
-
-            private class vertex {
-                public int id;
-                public int parent = -1;
-                public double weight = double.MaxValue;
-                public bool isGray = false;
-                public int color; // Hashed color value
-            }
-
-            public Quantizer()
-            {
-                this.k = 1;
-                this.DistinctColorsSet = new HashSet<int>();
-                this.operationsSW = new Stopwatch();
-            }
-            public void quantize(RGBPixel[,] imageMatrix, int k)
-            {
-                this.k = k;
-
-                // save original image
-                this.originalImage = imageMatrix;
-
-                this.operationsSW.Start();
-                findDistinctColors();
-                this.operationsSW.Stop();
-
-                this.mst = generatMST();
-                this.MSTSum = calcMSTsum();
-            }
-            private int hashRGB(RGBPixel pi)
-            {
-                return (pi.red << 16) + (pi.green << 8) + (pi.blue);
-            }
-            private RGBPixel unHashRGB (int pi)
-            {
-                RGBPixel RGBpi;
-                RGBpi.red = Convert.ToByte((pi & 0xff0000) >> 16);
-                RGBpi.green = Convert.ToByte((pi & 0xff00) >> 8);
-                RGBpi.blue = Convert.ToByte((pi & 0xff));
-                return RGBpi;
-            }
-            private void findDistinctColors()
-            {
-                // Time: O/theta(N^2) 
-                // Space: O(D^2)
-                // create set of unique colors in original image
-                foreach (var p in this.originalImage){
-                    this.DistinctColorsSet.Add(hashRGB(p));
-                }
-                // count number of distinct colors (set size)
-                this.DistinctColours = DistinctColorsSet.Count;
-            }
-            
-            // Time: O(log(pow)) === O(log(2))
-            private int fastPow(int x, uint pow)
-            {
-                int ret = 1;
-                while (pow != 0)
-                {
-                    if ((pow & 1) == 1)
-                        ret *= x;
-                    x *= x;
-                    pow >>= 1;
-                }
-                return ret;
-            }
-            private double getDistance(RGBPixel p1, RGBPixel p2)
-            {
-                // Time: O(log(2))...?
-                return Math.Sqrt(fastPow(p1.red - p2.red, 2) + fastPow(p1.green - p2.green, 2) + fastPow(p1.blue - p2.blue,2));
-            }
-
-            private vertex[] generatMST()
-            {
-                //PriorityQueue<vertex> q = new PriorityQueue<vertex>(true);
-                vertex[] vertices = new vertex[this.DistinctColours];
-
-                //=================GRAPH CONSTRUCTION======================\\
-                //initialize each vertex
-                //copy pixels from set to class vertices
-                int vertices_init_i = 0;
-                foreach(var dc in DistinctColorsSet)
-                {
-                    vertices[vertices_init_i] = new vertex();
-                    vertices[vertices_init_i].color = dc;
-                    vertices[vertices_init_i].id = vertices_init_i;
-                    
-                    if (vertices_init_i==0)
-                        vertices[vertices_init_i].weight = 0;
-                    //q.Enqueue(vertices[vertices_init_i].weight, vertices[vertices_init_i]);
-                    vertices_init_i++;
-                }
-                //==================================================\\
-
-                int q = DistinctColours;
-                // Total Time: O (V^2)
-                // Time: O(V)
-                while (q-- > 0)
-                //while(q.Count>0)
-                {
-                    //minimize weight of all the vertex's adjacents
-                    //vertex minVertex = q.Dequeue();
-
-                    // Time: O(V)
-                    int bestNode = 0;
-                    double bestDist = double.MaxValue;
-                    foreach (var v in vertices)
-                    {
-                        if (!v.isGray && v.weight < bestDist)
-                        {
-                            bestNode = v.id;
-                            bestDist = v.weight;
-                        }
-                    }
-                    vertex minVertex = vertices[bestNode];
-                    vertices[minVertex.id].isGray = true;
-                    minVertex.isGray = true;
-                    // Time: O(V)
-                    foreach (var vert in vertices)
-                    {
-                        if (!vert.isGray)
-                        {
-                            double currentDistance = getDistance(unHashRGB(minVertex.color), unHashRGB(vert.color));
-                            if (currentDistance < vert.weight)
-                            {
-                                vert.parent = minVertex.id;
-                                vert.weight = currentDistance;
-                                //q.UpdatePriority(vert, vert.weight);
-                            } 
-                        }
-                    }
-                }
-                return vertices;
-            }
-
-            private double calcMSTsum()
-            {
-                double res = 0;
-                for( int i = 0; i < mst.Length; i++)
-                {
-                    res += mst[i].weight; 
-                }
-                return res;
-            }
-            // returns image for displaying
-            public RGBPixel[,] getImage()
-            {
-                return quantizedImage;
-            }
-        }
-
         /// <summary>
         /// Get the height of the image 
         /// </summary>
@@ -463,15 +428,13 @@ namespace ImageQuantization
             }
             PicBox.Image = ImageBMP;
         }
-
-
-       /// <summary>
-       /// Apply Gaussian smoothing filter to enhance the edge detection 
-       /// </summary>
-       /// <param name="ImageMatrix">Colored image matrix</param>
-       /// <param name="filterSize">Gaussian mask size</param>
-       /// <param name="sigma">Gaussian sigma</param>
-       /// <returns>smoothed color image</returns>
+        /// <summary>
+        /// Apply Gaussian smoothing filter to enhance the edge detection 
+        /// </summary>
+        /// <param name="ImageMatrix">Colored image matrix</param>
+        /// <param name="filterSize">Gaussian mask size</param>
+        /// <param name="sigma">Gaussian sigma</param>
+        /// <returns>smoothed color image</returns>
         public static RGBPixel[,] GaussianFilter1D(RGBPixel[,] ImageMatrix, int filterSize, double sigma)
         {
             int Height = GetHeight(ImageMatrix);
@@ -480,7 +443,7 @@ namespace ImageQuantization
             RGBPixelD[,] VerFiltered = new RGBPixelD[Height, Width];
             RGBPixel[,] Filtered = new RGBPixel[Height, Width];
 
-           
+
             // Create Filter in Spatial Domain:
             //=================================
             //make the filter ODD size
@@ -556,7 +519,6 @@ namespace ImageQuantization
 
             return Filtered;
         }
-
 
     }
 }

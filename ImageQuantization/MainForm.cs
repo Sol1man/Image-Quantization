@@ -27,13 +27,14 @@ namespace ImageQuantization
                 string OpenedFilePath = openFileDialog1.FileName;
                 ImageMatrix = ImageOperations.OpenImage(OpenedFilePath);
                 ImageOperations.DisplayImage(ImageMatrix, pictureBox1);
+                
+                txtWidth.Text = ImageOperations.GetWidth(ImageMatrix).ToString();
+                txtHeight.Text = ImageOperations.GetHeight(ImageMatrix).ToString();
+                DistColBox.Text = "";
+                MSTSumBox.Text = "";
+                timeBox.Text = "";
+                operationsSWBox.Text = "";
             }
-            txtWidth.Text = ImageOperations.GetWidth(ImageMatrix).ToString();
-            txtHeight.Text = ImageOperations.GetHeight(ImageMatrix).ToString();
-            DistColBox.Text = "";
-            MSTSumBox.Text = "";
-            timeBox.Text = "";
-            operationsSWBox.Text = "";
         }
 
         private void btnGaussSmooth_Click(object sender, EventArgs e)
@@ -52,21 +53,24 @@ namespace ImageQuantization
             // quantizer instance, will be used to get MSTSum and number of DistinctColors
             var quantizer = new ImageOperations.Quantizer();
 
+            // measure time taken to quantize image
             Stopwatch sw = new Stopwatch();
             sw.Start();
             // start quantization functions chain
             quantizer.quantize(ImageMatrix,k);
             sw.Stop();
 
-            // get MSTSum and DistinctColors for displaying in form
-            MSTSumBox.Text = quantizer.MSTSum.ToString();
-            DistColBox.Text = quantizer.DistinctColours.ToString();
+            // get MSTSum and number of DistinctColors for displaying in form
+            MSTSumBox.Text = quantizer.getMSTSum().ToString();
+            DistColBox.Text = quantizer.getDistinctColoursCount().ToString();
             timeBox.Text = sw.Elapsed.ToString("mm\\:ss\\.ff");
+
+            // time for distinct colors
             operationsSWBox.Text = quantizer.operationsSW.Elapsed.ToString("mm\\:ss\\.ff");
 
             // get quantized Image for displaying in form
-            //RGBPixel[,] QuantizedImage = quantizer.getImage();
-            //ImageOperations.DisplayImage(QuantizedImage, pictureBox2);
+            RGBPixel[,] QuantizedImage = quantizer.getImage();
+            ImageOperations.DisplayImage(QuantizedImage, pictureBox2);
         }
 
     }
